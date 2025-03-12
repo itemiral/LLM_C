@@ -1,105 +1,109 @@
-import streamlit as st
-import requests
-import folium
-from streamlit_folium import folium_static
-from folium import Icon
-import numpy as np
-import openai
 import os
-import math
+import requests
+import json
+import numpy as np
+from openai import OpenAI
+from flask import Flask, jsonify, request
 
 # Initialize OpenAI client with default API key
-openai.api_key = os.getenv('OPENAI_API_KEY')
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-# Set Streamlit layout to wide to take up more space on the screen
-st.set_page_config(layout="wide")
+app = Flask(__name__)
 
-st.title("🎈 WindBorne Balloon Tracker")
-
-# Define the API URL of the Flask backend
-API_URL = "http://127.0.0.1:5000/analyze"
-
-# Check if there is any existing data in session state
-if 'data' not in st.session_state:
-    st.session_state.data = None
-
-if st.button("Fetch Balloon Data"):
-    st.write("Fetching latest balloon data...")
-
-    try:
-        responses = []
-        for i in range(24):  # Fetch data for each of the 24 hours
-            url = f"https://a.windbornesystems.com/treasure/{str(i).zfill(2)}.json"
+# Function to fetch balloon data with error handling for corrupted/missing files
+def fetch_balloon_data():
+    data = []
+    errors = []  # Keep track of URLs that had issues
+    for i in range(24):
+        url = f"https://a.windbornesystems.com/treasure/{str(i).zfill(2)}.json"
+        try:
+            res = requests.get(url)
+            res.raise_for_status()  # Will raise an exception for 404s or other errors
             try:
-                res = requests.get(url)
-                res.raise_for_status()  # Will raise an exception for 404s or other errors
-                try:
-                    json_data = res.json()
-                    if isinstance(json_data, list):
-                        responses.append({'data': json_data, 'hour': i})
-                    else:
-                        pass  # Skip invalid data format without warning
-                except requests.exceptions.JSONDecodeError:
-                    pass  # Skip invalid JSON without warning
-            except requests.exceptions.RequestException as e:
-                pass  # Skip any request exceptions without warning
+                json_data = res.json()  # Attempt to parse JSON
+                if isinstance(json_data, list):
+                    data.extend(json_data)
+                else:
+                    errors.append(f"Warning: Non-list data format at {url}")
+            except json.JSONDecodeError as e:  # Fix: Use json.JSONDecodeError
+                errors.append(f"Invalid JSON format at {url}: {e}")
+        except requests.exceptions.RequestException as e:
+            errors.append(f"Error with URL {url}: {e}")
+    
+    if errors:
+        print("\nErrors during data fetching:")
+        for error in errors:
+            print(error)
 
-        # Flatten the data for all hours into a single list
-        balloon_data = []
-        for response in responses:
-            for data_point in response['data']:
-                if len(data_point) == 3:
-                    lat, lon, alt = data_point
-                    # Substitute NaN values with 0
-                    if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
-                        # Replace NaN with 0 for altitude and invalid coordinates
-                        if isinstance(alt, (int, float)) and not math.isnan(alt):
-                            balloon_data.append((lat, lon, alt))
-                        else:
-                            balloon_data.append((lat, lon, 0))  # Replace NaN altitude with 0
-        st.session_state.data = balloon_data
+    return data
 
-    except requests.exceptions.RequestException as e:
-        st.error(f"Failed to reach the API: {e}")
+# Function to analyze balloon data
+def analyze_flight(balloon_data):
+    if not balloon_data:
+        return {"mean_altitude": "No Data", "ai_summary": "No flight data available."}
 
-# Check if data is available in session state and display
-if st.session_state.data:
-    # Calculate Mean Altitude
-    mean_altitude = np.mean([d[2] for d in st.session_state.data])
-    st.write(f"📊 **Mean Altitude:** {mean_altitude:.2f}m")
+    # Extract altitudes and skip None values, check if valid data exists
+    altitudes = []
+    valid_data = []  # List to store valid data points
+    for b in balloon_data:
+        if isinstance(b, list) and len(b) > 2:
+            lat, lon, alt = b[0], b[1], b[2]
+            # Check if lat, lon, and alt are valid numbers
+            if isinstance(lat, (int, float)) and isinstance(lon, (int, float)) and isinstance(alt, (int, float)):
+                valid_data.append((lat, lon, alt))  # Only add valid data points
+                altitudes.append(alt if not np.isnan(alt) else 0)  # Replace NaN with 0
+            else:
+                print(f"Invalid data for coordinates: {lat}, {lon}, {alt}")  # Debugging line
+        else:
+            print(f"Invalid entry: {b}")  # Debugging line
 
-    # Generate AI Insights using OpenAI
-    prompt = f"Summarize this balloon flight data:\n{st.session_state.data[:5]}..."  # First 5 data points for brevity
+    print(f"Valid data: {valid_data}")  # Debugging line
+    print(f"Altitudes: {altitudes}")  # Debugging line
+
+    # Safely calculate mean altitude, handling empty or invalid data
+    if altitudes:
+        mean_alt = np.mean(altitudes)
+    else:
+        mean_alt = "No valid altitude data"
+
+    # Generate AI insights using OpenAI
+    prompt = f"Summarize this balloon flight data:\n{valid_data[:5]}..."  # Take only the first 5 entries for brevity
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",  # Change to turbo or another model you have access to
             messages=[
-                {"role": "system", "content": "You are an expert in analyzing flight data."},
+                {"role": "system", "content": "You are an expert in analyzing flight patterns."},
                 {"role": "user", "content": prompt}
             ]
         )
-        ai_summary = response['choices'][0]['message']['content']
+        ai_summary = response.choices[0].message.content
     except Exception as e:
         ai_summary = f"Error generating summary: {e}"
 
-    st.write(f"🧠 **AI Insights:** {ai_summary}")
+    # Return only the first mean altitude and AI insights summary
+    return {"mean_altitude": mean_alt, "ai_summary": ai_summary, "balloon_data": valid_data}
 
-    # Initialize Map only once
-    if 'map' not in st.session_state:
-        st.session_state.map = folium.Map(location=[0, 0], zoom_start=2)
+# API Endpoint to fetch data
+@app.route("/analyze", methods=["GET"])
+def analyze():
+    data = fetch_balloon_data()
+    result = analyze_flight(data)
+    return jsonify(result)
 
-    m = st.session_state.map  # Reuse the map
+# API Endpoint to accept POST requests (if needed for AI analysis from frontend)
+@app.route("/analyze", methods=["POST"])
+def analyze_post():
+    # Get the balloon data from the request payload
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
 
-    # Create custom balloon icon
-    balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
+    # Process the balloon data and generate insights
+    result = analyze_flight(data)
+    
+    return jsonify(result)
 
-    # Add markers for each balloon
-    for i, (lat, lon, alt) in enumerate(st.session_state.data):
-        if math.isnan(lat) or math.isnan(lon):
-            lat, lon = 0, 0  # Substitute invalid coordinates with (0, 0)
-
-        folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
-
-    # Display map using folium_static
-    folium_static(m, width=1800, height=1000)
+if __name__ == "__main__":
+    app.run(debug=True)
