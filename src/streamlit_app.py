@@ -123,6 +123,7 @@ if st.session_state.data:
     # Optionally, add a dropdown to simulate the interaction of clicking on a balloon
     balloon_data = st.session_state.data
     marker_info = st.selectbox("Select a balloon to get insights", balloon_data)
+    
     if marker_info:
         lat, lon, alt = marker_info
         st.write(f"Fetching insights for Balloon at Lat: {lat}, Lon: {lon}, Alt: {alt}m")
@@ -142,4 +143,4 @@ if st.session_state.data:
         except Exception as e:
             ai_summary = f"Error generating summary: {e}"
 
-        st.write(f"🧠 **AI Insights:** {ai_summary}")
+        st.write(f"🧠 **AI Insights for Selected Balloon:** {ai_summary}")
