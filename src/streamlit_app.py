@@ -111,6 +111,7 @@ if st.session_state.data:
         lon = lon if not math.isnan(lon) else 0
 
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
+        folium_static(m, width=700)  # Set width for future
 
     # Display the map
     folium_static(m, width=700)  # Set width for future
