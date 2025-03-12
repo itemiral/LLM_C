@@ -4,17 +4,20 @@ import folium
 from streamlit_folium import st_folium
 from folium import Icon
 import numpy as np
-from openai import OpenAI
+import openai
 import os
 import math
 
 # Initialize OpenAI client with default API key
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 st.title("🎈 WindBorne Balloon Tracker")
 
 # Define the API URL of the Flask backend
 API_URL = "http://127.0.0.1:5000/analyze"
+
+# OpenAI API Key Input (If necessary, you can modify it to not ask if you have default set in the backend)
+openai_key = st.text_input("Enter OpenAI API Key:", type="password")
 
 # Check if there is any existing data in session state
 if 'data' not in st.session_state:
@@ -69,7 +72,7 @@ if st.session_state.data:
     prompt = f"Summarize this balloon flight data:\n{st.session_state.data[:5]}..."  # First 5 data points for brevity
 
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
             messages=[
                 {"role": "system", "content": "You are an expert in analyzing flight data."},
@@ -89,18 +92,16 @@ if st.session_state.data:
     max_balloons = 200
     balloon_data = st.session_state.data[:max_balloons]
 
-    # Create custom balloon icon (no highlight logic)
+    # Create custom balloon icon
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
+    highlight_icon = Icon(color="red", icon="cloud", icon_color="white")  # Highlighted balloon icon
 
     for i, (lat, lon, alt) in enumerate(balloon_data):
         # Check for NaN values in lat or lon
         if math.isnan(lat) or math.isnan(lon):
             lat, lon = 0, 0  # Substitute invalid coordinates with (0, 0)
 
-        # Create popup with additional info when balloon is clicked
-        popup_content = f"Balloon {i+1} - Altitude: {alt}m"
-
-        # Use balloon_icon for all balloons
-        folium.Marker([lat, lon], popup=popup_content, icon=balloon_icon).add_to(m)
+        icon = highlight_icon if i == 0 else balloon_icon  # Highlight the first balloon
+        folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=icon).add_to(m)
 
     st_folium(m, width=700)
