@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import folium
-from streamlit_folium import folium_static  # Use folium_static instead of st_folium
+from streamlit_folium import folium_static
 from folium import Icon
 import numpy as np
 import openai
@@ -89,6 +89,12 @@ if st.session_state.data:
     # Initialize the map based on balloon data
     latitudes = [lat for lat, lon, alt in st.session_state.data]
     longitudes = [lon for lat, lon, alt in st.session_state.data]
+    
+    # Replace NaN values with 0 for latitude and longitude if any are NaN
+    latitudes = [lat if not math.isnan(lat) else 0 for lat in latitudes]
+    longitudes = [lon if not math.isnan(lon) else 0 for lon in longitudes]
+    
+    # Calculate the mean lat and lon for the map's center
     mean_lat = np.mean(latitudes)
     mean_lon = np.mean(longitudes)
 
@@ -100,8 +106,9 @@ if st.session_state.data:
 
     # Add markers for each balloon
     for i, (lat, lon, alt) in enumerate(st.session_state.data):
-        if math.isnan(lat) or math.isnan(lon):
-            lat, lon = 0, 0  # Substitute invalid coordinates with (0, 0)
+        # Substitute invalid lat or lon with 0 if NaN
+        lat = lat if not math.isnan(lat) else 0
+        lon = lon if not math.isnan(lon) else 0
 
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
