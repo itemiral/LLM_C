@@ -90,7 +90,7 @@ if st.session_state.data:
     m = folium.Map(location=[0, 0], zoom_start=2)
 
     # Limit the number of balloons to display (e.g., 500)
-    max_balloons = 200
+    max_balloons = 10
     balloon_data = st.session_state.data[:max_balloons]
 
     # Create custom balloon icon (No highlight)
