@@ -65,19 +65,22 @@ if st.button("Fetch Balloon Data"):
 
 # Check if data is available in session state and display
 if st.session_state.data:
-    # Debugging: Show the first 5 data points
-    st.write(f"First 5 Data Points: {st.session_state.data[:5]}")
+    # Limit the balloon data to 300 points
+    limited_data = st.session_state.data[:300]  # Limit to the first 300 entries
 
-    # Check how many unique (lat, lon) pairs are in the data
-    unique_coords = set((lat, lon) for lat, lon, alt in st.session_state.data)
+    # Debugging: Show the first 5 data points
+    st.write(f"First 5 Data Points: {limited_data[:5]}")
+
+    # Check how many unique (lat, lon) pairs are in the limited data
+    unique_coords = set((lat, lon) for lat, lon, alt in limited_data)
     st.write(f"Unique Balloon Locations: {len(unique_coords)}")
 
     # Calculate Mean Altitude
-    mean_altitude = np.mean([d[2] for d in st.session_state.data])
+    mean_altitude = np.mean([d[2] for d in limited_data])
     st.write(f"📊 **Mean Altitude:** {mean_altitude:.2f}m")
 
     # Generate AI Insights using OpenAI
-    prompt = f"Summarize this balloon flight data:\n{st.session_state.data[:5]}..."  # First 5 data points for brevity
+    prompt = f"Summarize this balloon flight data:\n{limited_data[:5]}..."  # First 5 data points for brevity
 
     try:
         response = openai.ChatCompletion.create(
@@ -94,8 +97,8 @@ if st.session_state.data:
     st.write(f"🧠 **AI Insights:** {ai_summary}")
 
     # Initialize the map based on balloon data
-    latitudes = [lat for lat, lon, alt in st.session_state.data]
-    longitudes = [lon for lat, lon, alt in st.session_state.data]
+    latitudes = [lat for lat, lon, alt in limited_data]
+    longitudes = [lon for lat, lon, alt in limited_data]
 
     # Replace NaN values with 0 for latitude and longitude if any are NaN
     latitudes = [lat if not math.isnan(lat) else 0 for lat in latitudes]
@@ -121,7 +124,7 @@ if st.session_state.data:
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
     # Add markers for each balloon
-    for lat, lon, alt in st.session_state.data:
+    for lat, lon, alt in limited_data:
         # Substitute invalid lat or lon with 0 if NaN
         lat = lat if not math.isnan(lat) else 0
         lon = lon if not math.isnan(lon) else 0
