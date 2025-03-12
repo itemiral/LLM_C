@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import folium
-from folium import Icon
 from streamlit_folium import folium_static
 import numpy as np
 import openai
@@ -96,29 +95,7 @@ if st.session_state.data:
             fill_opacity=0.6,
             popup=f"Altitude: {alt}m\nLatitude: {lat}\nLongitude: {lon}"
         )
-
-        # Add a click event to the marker to fetch AI insights when clicked
-        def on_click(marker, lat=lat, lon=lon, alt=alt):
-            # Generate AI Insights for the selected balloon when clicked
-            prompt = f"Analyze the following balloon data point: Latitude: {lat}, Longitude: {lon}, Altitude: {alt}."
-            
-            try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
-                    messages=[
-                        {"role": "system", "content": "You are an expert in analyzing flight data."},
-                        {"role": "user", "content": prompt}
-                    ]
-                )
-                ai_summary = response['choices'][0]['message']['content']
-            except Exception as e:
-                ai_summary = f"Error generating summary: {e}"
-
-            return ai_summary
-
-        # Attach the function to the popup of the marker to show the AI insights
-        marker.add_child(folium.Popup(f"AI Insights: {on_click(marker)}"))
-
+        
         # Add marker to the map
         marker.add_to(m)
 
