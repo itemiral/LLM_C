@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import folium
-from folium import Icon
 from streamlit_folium import folium_static
 import numpy as np
 import openai
@@ -78,7 +77,7 @@ if st.session_state.data:
     mean_lat = np.mean(latitudes)
     mean_lon = np.mean(longitudes)
 
-    # Initialize map centered around the mean latitude and longitude
+    # Initialize the map centered around the mean latitude and longitude
     m = folium.Map(location=[mean_lat, mean_lon], zoom_start=8)
 
     # Create markers using CircleMarker for visibility
@@ -99,9 +98,6 @@ if st.session_state.data:
         
         # Add marker to the map
         marker.add_to(m)
-
-    # Display the map with the markers
-    folium_static(m, width=700)  # Set width for future
 
     # Optionally, add a dropdown to simulate the interaction of clicking on a balloon
     balloon_data = st.session_state.data
@@ -129,7 +125,7 @@ if st.session_state.data:
         st.write(f"🧠 **AI Insights for Selected Balloon:** {ai_summary}")
 
         # Update the map to zoom in on the selected balloon
-        m = folium.Map(location=[lat, lon], zoom_start=12)  # Zoom in closer to the selected balloon
+        m = folium.Map(location=[lat, lon], zoom_start=14)  # Zoom in closer to the selected balloon
 
         # Create a marker for the selected balloon with different color or size
         folium.CircleMarker(
@@ -142,5 +138,5 @@ if st.session_state.data:
             popup=f"Altitude: {alt}m\nLatitude: {lat}\nLongitude: {lon}"
         ).add_to(m)
 
-        # Display the updated map centered on the selected balloon
-        folium_static(m, width=700)  # Set width for future
+    # Display the updated map with the selected balloon
+    folium_static(m, width=700)  # Set width for future
