@@ -127,3 +127,20 @@ if st.session_state.data:
             ai_summary = f"Error generating summary: {e}"
 
         st.write(f"🧠 **AI Insights for Selected Balloon:** {ai_summary}")
+
+        # Update the map to zoom in on the selected balloon
+        m = folium.Map(location=[lat, lon], zoom_start=12)  # Zoom in closer to the selected balloon
+
+        # Create a marker for the selected balloon with different color or size
+        folium.CircleMarker(
+            location=[lat, lon],
+            radius=15,  # Increase radius for visibility
+            color="red",  # Red color to highlight the selected balloon
+            fill=True,
+            fill_color="red",
+            fill_opacity=0.6,
+            popup=f"Altitude: {alt}m\nLatitude: {lat}\nLongitude: {lon}"
+        ).add_to(m)
+
+        # Display the updated map centered on the selected balloon
+        folium_static(m, width=700)  # Set width for future
