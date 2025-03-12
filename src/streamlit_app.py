@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import folium
+from folium import Icon
 from streamlit_folium import folium_static
 import numpy as np
 import openai
@@ -77,7 +78,7 @@ if st.session_state.data:
     mean_lat = np.mean(latitudes)
     mean_lon = np.mean(longitudes)
 
-    # Initialize the map centered around the mean latitude and longitude
+    # Initialize map centered around the mean latitude and longitude
     m = folium.Map(location=[mean_lat, mean_lon], zoom_start=8)
 
     # Create markers using CircleMarker for visibility
@@ -95,48 +96,31 @@ if st.session_state.data:
             fill_opacity=0.6,
             popup=f"Altitude: {alt}m\nLatitude: {lat}\nLongitude: {lon}"
         )
-        
+
+        # Add a click event to the marker to fetch AI insights when clicked
+        def on_click(marker, lat=lat, lon=lon, alt=alt):
+            # Generate AI Insights for the selected balloon when clicked
+            prompt = f"Analyze the following balloon data point: Latitude: {lat}, Longitude: {lon}, Altitude: {alt}."
+            
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
+                    messages=[
+                        {"role": "system", "content": "You are an expert in analyzing flight data."},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                ai_summary = response['choices'][0]['message']['content']
+            except Exception as e:
+                ai_summary = f"Error generating summary: {e}"
+
+            return ai_summary
+
+        # Attach the function to the popup of the marker to show the AI insights
+        marker.add_child(folium.Popup(f"AI Insights: {on_click(marker)}"))
+
         # Add marker to the map
         marker.add_to(m)
 
-    # Optionally, add a dropdown to simulate the interaction of clicking on a balloon
-    balloon_data = st.session_state.data
-    marker_info = st.selectbox("Select a balloon to get insights", balloon_data)
-    
-    if marker_info:
-        lat, lon, alt = marker_info
-        st.write(f"Fetching insights for Balloon at Lat: {lat}, Lon: {lon}, Alt: {alt}m")
-
-        # Generate AI Insights for the selected balloon
-        prompt = f"Analyze the following balloon data point: Latitude: {lat}, Longitude: {lon}, Altitude: {alt}."
-
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
-                messages=[
-                    {"role": "system", "content": "You are an expert in analyzing flight data."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            ai_summary = response['choices'][0]['message']['content']
-        except Exception as e:
-            ai_summary = f"Error generating summary: {e}"
-
-        st.write(f"🧠 **AI Insights for Selected Balloon:** {ai_summary}")
-
-        # Update the map to zoom in on the selected balloon
-        m = folium.Map(location=[lat, lon], zoom_start=14)  # Zoom in closer to the selected balloon
-
-        # Create a marker for the selected balloon with different color or size
-        folium.CircleMarker(
-            location=[lat, lon],
-            radius=15,  # Increase radius for visibility
-            color="red",  # Red color to highlight the selected balloon
-            fill=True,
-            fill_color="red",
-            fill_opacity=0.6,
-            popup=f"Altitude: {alt}m\nLatitude: {lat}\nLongitude: {lon}"
-        ).add_to(m)
-
-    # Display the updated map with the selected balloon
+    # Display the map with the markers
     folium_static(m, width=700)  # Set width for future
