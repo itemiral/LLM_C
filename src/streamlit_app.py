@@ -77,7 +77,7 @@ if st.session_state.data:
                 {"role": "user", "content": prompt}
             ]
         )
-        ai_summary = response.choices[0].message.content
+        ai_summary = response['choices'][0]['message']['content']
     except Exception as e:
         ai_summary = f"Error generating summary: {e}"
 
@@ -90,16 +90,14 @@ if st.session_state.data:
     max_balloons = 200
     balloon_data = st.session_state.data[:max_balloons]
 
-    # Create custom balloon icon
+    # Create custom balloon icon (No highlight)
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
-    highlight_icon = Icon(color="red", icon="cloud", icon_color="white")  # Highlighted balloon icon
 
     for i, (lat, lon, alt) in enumerate(balloon_data):
         # Check for NaN values in lat or lon
         if math.isnan(lat) or math.isnan(lon):
             lat, lon = 0, 0  # Substitute invalid coordinates with (0, 0)
 
-        icon = highlight_icon if i == 0 else balloon_icon  # Highlight the first balloon
-        folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=icon).add_to(m)
+        folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
     st_folium(m, width=700)
