@@ -4,4 +4,4 @@ streamlit>=1.26.0
 numpy>=1.22.0
 requests==2.26.0
 openai==0.27.0
-pillow==8.4.0
+pillow==8.4.0  # Downgrade to avoid compilation issues
