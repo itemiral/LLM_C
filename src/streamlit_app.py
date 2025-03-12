@@ -113,6 +113,4 @@ if st.session_state.data:
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
         folium_static(m, width=700)  # Set width for future
 
-    # Display the map
-    folium_static(m, width=700)  # Set width for future
 
