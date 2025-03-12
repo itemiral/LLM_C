@@ -116,13 +116,11 @@ if st.session_state.data:
     # Create custom balloon icon (No highlight)
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
-    # Add markers for each balloon
+    # Add markers manually for each balloon
     for lat, lon, alt in limited_data:
-        # Substitute invalid lat or lon with 0 if NaN
-        lat = lat if not math.isnan(lat) else 0
-        lon = lon if not math.isnan(lon) else 0
-
-        folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
+        # Manually check if coordinates are valid
+        if not math.isnan(lat) and not math.isnan(lon):
+            folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
     # Display the map using folium_static
     folium_static(m, width=1800, height=1000)  # Larger width and height for better visibility
