@@ -1,109 +1,107 @@
-import os
+import streamlit as st
 import requests
-import json
+import folium
+from streamlit_folium import folium_static  # Use folium_static instead of st_folium
+from folium import Icon
 import numpy as np
-import openai  # Import the openai library directly
-from flask import Flask, jsonify, request
+import openai
+import os
+import json
+import math
 
 # Initialize OpenAI client with default API key
-openai.api_key = os.getenv('OPENAI_API_KEY')  # Use the openai.api_key directly
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
-app = Flask(__name__)
+# Set Streamlit layout to wide to take up more space on the screen
+st.set_page_config(layout="wide")
 
-# Function to fetch balloon data with error handling for corrupted/missing files
-def fetch_balloon_data():
-    data = []
-    errors = []  # Keep track of URLs that had issues
-    for i in range(24):
-        url = f"https://a.windbornesystems.com/treasure/{str(i).zfill(2)}.json"
-        try:
-            res = requests.get(url)
-            res.raise_for_status()  # Will raise an exception for 404s or other errors
+st.title("🎈 WindBorne Balloon Tracker")
+
+# Define the API URL of the Flask backend
+API_URL = "http://127.0.0.1:5000/analyze"
+
+# Check if there is any existing data in session state
+if 'data' not in st.session_state:
+    st.session_state.data = None
+
+if st.button("Fetch Balloon Data"):
+    st.write("Fetching latest balloon data...")
+
+    try:
+        responses = []
+        for i in range(24):  # Fetch data for each of the 24 hours
+            url = f"https://a.windbornesystems.com/treasure/{str(i).zfill(2)}.json"
             try:
-                json_data = res.json()  # Attempt to parse JSON
-                if isinstance(json_data, list):
-                    data.extend(json_data)
-                else:
-                    errors.append(f"Warning: Non-list data format at {url}")
-            except json.JSONDecodeError as e:  # Fix: Use json.JSONDecodeError
-                errors.append(f"Invalid JSON format at {url}: {e}")
-        except requests.exceptions.RequestException as e:
-            errors.append(f"Error with URL {url}: {e}")
-    
-    if errors:
-        print("\nErrors during data fetching:")
-        for error in errors:
-            print(error)
+                res = requests.get(url)
+                res.raise_for_status()  # Will raise an exception for 404s or other errors
+                try:
+                    json_data = res.json()
+                    if isinstance(json_data, list):
+                        responses.append({'data': json_data, 'hour': i})
+                    else:
+                        pass  # Skip invalid data format without warning
+                except json.JSONDecodeError:
+                    pass  # Skip invalid JSON without warning
+            except requests.exceptions.RequestException as e:
+                pass  # Skip any request exceptions without warning
 
-    return data
+        # Flatten the data for all hours into a single list
+        balloon_data = []
+        for response in responses:
+            for data_point in response['data']:
+                if len(data_point) == 3:
+                    lat, lon, alt = data_point
+                    # Substitute NaN values with 0
+                    if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+                        # Replace NaN with 0 for altitude and invalid coordinates
+                        if isinstance(alt, (int, float)) and not math.isnan(alt):
+                            balloon_data.append((lat, lon, alt))
+                        else:
+                            balloon_data.append((lat, lon, 0))  # Replace NaN altitude with 0
+        st.session_state.data = balloon_data
 
-# Function to analyze balloon data
-def analyze_flight(balloon_data):
-    if not balloon_data:
-        return {"mean_altitude": "No Data", "ai_summary": "No flight data available."}
+    except requests.exceptions.RequestException as e:
+        st.error(f"Failed to reach the API: {e}")
 
-    # Extract altitudes and skip None values, check if valid data exists
-    altitudes = []
-    valid_data = []  # List to store valid data points
-    for b in balloon_data:
-        if isinstance(b, list) and len(b) > 2:
-            lat, lon, alt = b[0], b[1], b[2]
-            # Check if lat, lon, and alt are valid numbers
-            if isinstance(lat, (int, float)) and isinstance(lon, (int, float)) and isinstance(alt, (int, float)):
-                valid_data.append((lat, lon, alt))  # Only add valid data points
-                altitudes.append(alt if not np.isnan(alt) else 0)  # Replace NaN with 0
-            else:
-                print(f"Invalid data for coordinates: {lat}, {lon}, {alt}")  # Debugging line
-        else:
-            print(f"Invalid entry: {b}")  # Debugging line
+# Check if data is available in session state and display
+if st.session_state.data:
+    # Calculate Mean Altitude
+    mean_altitude = np.mean([d[2] for d in st.session_state.data])
+    st.write(f"📊 **Mean Altitude:** {mean_altitude:.2f}m")
 
-    print(f"Valid data: {valid_data}")  # Debugging line
-    print(f"Altitudes: {altitudes}")  # Debugging line
-
-    # Safely calculate mean altitude, handling empty or invalid data
-    if altitudes:
-        mean_alt = np.mean(altitudes)
-    else:
-        mean_alt = "No valid altitude data"
-
-    # Generate AI insights using OpenAI
-    prompt = f"Summarize this balloon flight data:\n{valid_data[:5]}..."  # Take only the first 5 entries for brevity
+    # Generate AI Insights using OpenAI
+    prompt = f"Summarize this balloon flight data:\n{st.session_state.data[:5]}..."  # First 5 data points for brevity
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Change to turbo or another model you have access to
+            model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
             messages=[
-                {"role": "system", "content": "You are an expert in analyzing flight patterns."},
+                {"role": "system", "content": "You are an expert in analyzing flight data."},
                 {"role": "user", "content": prompt}
             ]
         )
-        ai_summary = response.choices[0].message.content
+        ai_summary = response['choices'][0]['message']['content']
     except Exception as e:
         ai_summary = f"Error generating summary: {e}"
 
-    # Return only the first mean altitude and AI insights summary
-    return {"mean_altitude": mean_alt, "ai_summary": ai_summary, "balloon_data": valid_data}
+    st.write(f"🧠 **AI Insights:** {ai_summary}")
 
-# API Endpoint to fetch data
-@app.route("/analyze", methods=["GET"])
-def analyze():
-    data = fetch_balloon_data()
-    result = analyze_flight(data)
-    return jsonify(result)
+    # Initialize Map
+    m = folium.Map(location=[0, 0], zoom_start=2)
 
-# API Endpoint to accept POST requests (if needed for AI analysis from frontend)
-@app.route("/analyze", methods=["POST"])
-def analyze_post():
-    # Get the balloon data from the request payload
-    data = request.get_json()
-    
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
+    # Limit the number of balloons to display (e.g., 500)
+    max_balloons = 10
+    balloon_data = st.session_state.data[:max_balloons]
 
-    # Process the balloon data and generate insights
-    result = analyze_flight(data)
-    
-    return jsonify(result)
+    # Create custom balloon icon (No highlight)
+    balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    for i, (lat, lon, alt) in enumerate(balloon_data):
+        # Check for NaN values in lat or lon
+        if math.isnan(lat) or math.isnan(lon):
+            lat, lon = 0, 0  # Substitute invalid coordinates with (0, 0)
+
+        folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
+
+    # Display map using folium_static
+    folium_static(m, width=1800, height=1000)  # Larger width and height for better visibility
