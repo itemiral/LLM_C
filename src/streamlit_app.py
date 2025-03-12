@@ -4,12 +4,13 @@ import folium
 from streamlit_folium import st_folium
 from folium import Icon
 import numpy as np
-import openai
+from openai import OpenAI
 import os
+import json
 import math
 
 # Initialize OpenAI client with default API key
-openai.api_key = os.getenv('OPENAI_API_KEY')
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 st.title("🎈 WindBorne Balloon Tracker")
 
@@ -39,7 +40,7 @@ if st.button("Fetch Balloon Data"):
                         responses.append({'data': json_data, 'hour': i})
                     else:
                         pass  # Skip invalid data format without warning
-                except requests.exceptions.JSONDecodeError:
+                except json.JSONDecodeError:
                     pass  # Skip invalid JSON without warning
             except requests.exceptions.RequestException as e:
                 pass  # Skip any request exceptions without warning
@@ -72,7 +73,7 @@ if st.session_state.data:
     prompt = f"Summarize this balloon flight data:\n{st.session_state.data[:5]}..."  # First 5 data points for brevity
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
             messages=[
                 {"role": "system", "content": "You are an expert in analyzing flight data."},
