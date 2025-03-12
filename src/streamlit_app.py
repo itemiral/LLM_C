@@ -4,21 +4,18 @@ import folium
 from streamlit_folium import st_folium
 from folium import Icon
 import numpy as np
-from openai import OpenAI
+import openai
 import os
 import json
 import math
 
 # Initialize OpenAI client with default API key
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 st.title("🎈 WindBorne Balloon Tracker")
 
 # Define the API URL of the Flask backend
 API_URL = "http://127.0.0.1:5000/analyze"
-
-# OpenAI API Key Input (If necessary, you can modify it to not ask if you have default set in the backend)
-openai_key = st.text_input("Enter OpenAI API Key:", type="password")
 
 # Check if there is any existing data in session state
 if 'data' not in st.session_state:
@@ -73,7 +70,7 @@ if st.session_state.data:
     prompt = f"Summarize this balloon flight data:\n{st.session_state.data[:5]}..."  # First 5 data points for brevity
 
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
             messages=[
                 {"role": "system", "content": "You are an expert in analyzing flight data."},
