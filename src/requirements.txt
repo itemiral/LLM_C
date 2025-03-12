@@ -1,8 +1,8 @@
 folium==0.14.0
 streamlit-folium==0.13.0
-numpy==1.21.0  # Downgrade numpy to avoid numpy.bool8 issue
+numpy==1.20.0  # Downgrade numpy to a version that avoids numpy.bool8 issue
 requests==2.26.0
 openai==0.27.0
 streamlit>=1.15.0
-plotly==5.3.1
+plotly==5.1.0  # Downgrade plotly for better compatibility with numpy==1.20.0
 pandas==1.5.3  # Add pandas to meet Plotly's requirement
