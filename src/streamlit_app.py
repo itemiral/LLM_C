@@ -18,9 +18,6 @@ st.set_page_config(layout="wide")
 
 st.title("🎈 WindBorne Balloon Tracker")
 
-# Define the API URL of the Flask backend
-API_URL = "http://127.0.0.1:5000/analyze"
-
 # Check if there is any existing data in session state
 if 'data' not in st.session_state:
     st.session_state.data = None
