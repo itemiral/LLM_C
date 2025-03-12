@@ -103,16 +103,43 @@ if st.session_state.data:
         lat = lat if not math.isnan(lat) else 0
         lon = lon if not math.isnan(lon) else 0
 
-        # Create a simple CircleMarker for each balloon
-        folium.CircleMarker(
+        # Create a simple CircleMarker for each balloon with increased radius for visibility
+        marker = folium.CircleMarker(
             location=[lat, lon],
-            radius=5,  # Adjust the radius for visibility
+            radius=10,  # Increase radius for bigger markers
             color="blue",
             fill=True,
             fill_color="blue",
             fill_opacity=0.6,
-            popup=f"Altitude: {alt}m"
-        ).add_to(m)
+            popup=f"Altitude: {alt}m\nLatitude: {lat}\nLongitude: {lon}"
+        )
+        
+        # Trigger OpenAI API call when marker is clicked (simulate dynamic interaction)
+        marker.add_to(m)
 
     # Display the map with the markers
     folium_static(m, width=700)  # Set width for future
+
+    # Optionally, you can also add an input text box for querying the OpenAI model based on selected marker
+    balloon_data = st.session_state.data
+    marker_info = st.selectbox("Select a balloon to get insights", balloon_data)
+    if marker_info:
+        lat, lon, alt = marker_info
+        st.write(f"Fetching insights for Balloon at Lat: {lat}, Lon: {lon}, Alt: {alt}m")
+
+        # Generate AI Insights for the selected balloon
+        prompt = f"Analyze the following balloon data point: Latitude: {lat}, Longitude: {lon}, Altitude: {alt}."
+
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
+                messages=[
+                    {"role": "system", "content": "You are an expert in analyzing flight data."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            ai_summary = response['choices'][0]['message']['content']
+        except Exception as e:
+            ai_summary = f"Error generating summary: {e}"
+
+        st.write(f"🧠 **AI Insights:** {ai_summary}")
