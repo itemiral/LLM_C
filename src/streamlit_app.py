@@ -111,8 +111,11 @@ if st.session_state.data:
     # Create custom balloon icon (No highlight)
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
-    # Add markers for each balloon
-    for lat, lon, alt in st.session_state.data:
+    # Add markers for each balloon with debugging
+    for idx, (lat, lon, alt) in enumerate(st.session_state.data):
+        # Debugging: Display each marker's position
+        st.write(f"Marker {idx}: Latitude={lat}, Longitude={lon}, Altitude={alt}")
+
         # Substitute invalid lat or lon with 0 if NaN
         lat = lat if not math.isnan(lat) else 0
         lon = lon if not math.isnan(lon) else 0
