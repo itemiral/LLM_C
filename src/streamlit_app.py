@@ -86,22 +86,24 @@ if st.session_state.data:
 
     st.write(f"🧠 **AI Insights:** {ai_summary}")
 
-    # Initialize Map
-    m = folium.Map(location=[0, 0], zoom_start=2)
+    # Initialize the map based on balloon data
+    latitudes = [lat for lat, lon, alt in st.session_state.data]
+    longitudes = [lon for lat, lon, alt in st.session_state.data]
+    mean_lat = np.mean(latitudes)
+    mean_lon = np.mean(longitudes)
 
-    # Limit the number of balloons to display (e.g., 500)
-    max_balloons = 10
-    balloon_data = st.session_state.data[:max_balloons]
+    # Initialize map centered around the mean latitude and longitude
+    m = folium.Map(location=[mean_lat, mean_lon], zoom_start=5)
 
     # Create custom balloon icon (No highlight)
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
-    for i, (lat, lon, alt) in enumerate(balloon_data):
-        # Check for NaN values in lat or lon
+    # Add markers for each balloon
+    for i, (lat, lon, alt) in enumerate(st.session_state.data):
         if math.isnan(lat) or math.isnan(lon):
             lat, lon = 0, 0  # Substitute invalid coordinates with (0, 0)
 
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
-    # Display map using folium_static
+    # Display the map only once, outside the loop
     folium_static(m, width=1800, height=1000)  # Larger width and height for better visibility
