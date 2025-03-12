@@ -66,6 +66,9 @@ if st.button("Fetch Balloon Data"):
 
 # Check if data is available in session state and display
 if st.session_state.data:
+    # Debugging: Display the first few data points to ensure correctness
+    st.write(f"Fetched Data (first 5 entries): {st.session_state.data[:5]}")
+
     # Calculate Mean Altitude
     mean_altitude = np.mean([d[2] for d in st.session_state.data])
     st.write(f"📊 **Mean Altitude:** {mean_altitude:.2f}m")
@@ -114,8 +117,9 @@ if st.session_state.data:
         lat = lat if not math.isnan(lat) else 0
         lon = lon if not math.isnan(lon) else 0
 
-        # Create a marker and add it to the marker cluster
-        folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(marker_cluster)
-        
-    # Display the map
+        # Create marker and add to the cluster
+        marker = folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon)
+        marker.add_to(marker_cluster)
+
+    # Display the map with the markers
     folium_static(m, width=700)  # Set width for future
