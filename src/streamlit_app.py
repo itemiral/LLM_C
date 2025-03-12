@@ -66,23 +66,6 @@ if st.session_state.data:
     mean_altitude = np.mean([d[2] for d in st.session_state.data])
     st.write(f"📊 **Mean Altitude:** {mean_altitude:.2f}m")
 
-    # Generate AI Insights using OpenAI
-    prompt = f"Summarize this balloon flight data:\n{st.session_state.data[:5]}..."  # First 5 data points for brevity
-
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
-            messages=[
-                {"role": "system", "content": "You are an expert in analyzing flight data."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        ai_summary = response['choices'][0]['message']['content']
-    except Exception as e:
-        ai_summary = f"Error generating summary: {e}"
-
-    st.write(f"🧠 **AI Insights:** {ai_summary}")
-
     # Initialize the map based on balloon data
     latitudes = [lat for lat, lon, alt in st.session_state.data]
     longitudes = [lon for lat, lon, alt in st.session_state.data]
