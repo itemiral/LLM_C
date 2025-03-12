@@ -24,41 +24,41 @@ if 'data' not in st.session_state:
 if st.button("Fetch Balloon Data"):
     st.write("Fetching latest balloon data...")
 
-    try:
-        responses = []
-        for i in range(24):  # Fetch data for each of the 24 hours
-            url = f"https://a.windbornesystems.com/treasure/{str(i).zfill(2)}.json"
-            try:
-                res = requests.get(url)
-                res.raise_for_status()  # Will raise an exception for 404s or other errors
+    with st.spinner('Loading data...'):
+        try:
+            responses = []
+            for i in range(24):  # Fetch data for each of the 24 hours
+                url = f"https://a.windbornesystems.com/treasure/{str(i).zfill(2)}.json"
                 try:
-                    json_data = res.json()
-                    if isinstance(json_data, list):
-                        responses.append({'data': json_data, 'hour': i})
-                    else:
-                        pass  # Skip invalid data format without warning
-                except json.JSONDecodeError:
-                    pass  # Skip invalid JSON without warning
-            except requests.exceptions.RequestException as e:
-                pass  # Skip any request exceptions without warning
+                    res = requests.get(url)
+                    res.raise_for_status()  # Will raise an exception for 404s or other errors
+                    try:
+                        json_data = res.json()
+                        if isinstance(json_data, list):
+                            responses.append({'data': json_data, 'hour': i})
+                    except json.JSONDecodeError:
+                        pass  # Skip invalid JSON without warning
+                except requests.exceptions.RequestException as e:
+                    pass  # Skip any request exceptions without warning
 
-        # Flatten the data for all hours into a single list
-        balloon_data = []
-        for response in responses:
-            for data_point in response['data']:
-                if len(data_point) == 3:
-                    lat, lon, alt = data_point
-                    # Substitute NaN values with 0
-                    if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
-                        # Replace NaN with 0 for altitude and invalid coordinates
-                        if isinstance(alt, (int, float)) and not math.isnan(alt):
-                            balloon_data.append((lat, lon, alt))
-                        else:
-                            balloon_data.append((lat, lon, 0))  # Replace NaN altitude with 0
-        st.session_state.data = balloon_data[:300]  # Limit to 300 data points for testing
+            # Flatten the data for all hours into a single list
+            balloon_data = []
+            for response in responses:
+                for data_point in response['data']:
+                    if len(data_point) == 3:
+                        lat, lon, alt = data_point
+                        # Substitute NaN values with 0
+                        if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+                            # Replace NaN with 0 for altitude and invalid coordinates
+                            if isinstance(alt, (int, float)) and not math.isnan(alt):
+                                balloon_data.append((lat, lon, alt))
+                            else:
+                                balloon_data.append((lat, lon, 0))  # Replace NaN altitude with 0
 
-    except requests.exceptions.RequestException as e:
-        st.error(f"Failed to reach the API: {e}")
+            st.session_state.data = balloon_data[:200]  # Limit to 200 data points
+
+        except requests.exceptions.RequestException as e:
+            st.error(f"Failed to reach the API: {e}")
 
 # Check if data is available in session state and display
 if st.session_state.data:
@@ -114,13 +114,13 @@ if st.session_state.data:
             popup=f"Altitude: {alt}m\nLatitude: {lat}\nLongitude: {lon}"
         )
         
-        # Trigger OpenAI API call when marker is clicked (simulate dynamic interaction)
+        # Add marker to the map
         marker.add_to(m)
 
     # Display the map with the markers
     folium_static(m, width=700)  # Set width for future
 
-    # Optionally, you can also add an input text box for querying the OpenAI model based on selected marker
+    # Optionally, add a dropdown to simulate the interaction of clicking on a balloon
     balloon_data = st.session_state.data
     marker_info = st.selectbox("Select a balloon to get insights", balloon_data)
     if marker_info:
