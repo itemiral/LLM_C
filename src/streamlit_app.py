@@ -101,26 +101,18 @@ if st.session_state.data:
     mean_lat = np.mean(latitudes)
     mean_lon = np.mean(longitudes)
 
-    # Adjust zoom level based on the number of unique locations
-    zoom_level = 5
-    if len(limited_data) > 50:
-        zoom_level = 4
-    elif len(limited_data) > 20:
-        zoom_level = 5
-    else:
-        zoom_level = 6
-
     # Initialize map centered around the mean latitude and longitude
-    m = folium.Map(location=[mean_lat, mean_lon], zoom_start=zoom_level)
+    m = folium.Map(location=[mean_lat, mean_lon], zoom_start=5)
 
     # Create custom balloon icon (No highlight)
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
-    # Add markers manually for each balloon
+    # Manually add markers for each balloon
     for lat, lon, alt in limited_data:
-        # Manually check if coordinates are valid
+        # Check if lat and lon are valid
         if not math.isnan(lat) and not math.isnan(lon):
+            # Add marker manually
             folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
-    # Display the map using folium_static
-    folium_static(m, width=1800, height=1000)  # Larger width and height for better visibility
+    # Display the map with folium_static
+    folium_static(m, width=700)  # Only set width and remove height for now
