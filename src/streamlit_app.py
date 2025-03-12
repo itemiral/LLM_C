@@ -1,12 +1,11 @@
 import streamlit as st
 import requests
 import folium
-from streamlit_folium import folium_static  # Use folium_static instead of st_folium
+from streamlit_folium import folium_static
 from folium import Icon
 import numpy as np
 import openai
 import os
-import json
 import math
 
 # Initialize OpenAI client with default API key
@@ -40,7 +39,7 @@ if st.button("Fetch Balloon Data"):
                         responses.append({'data': json_data, 'hour': i})
                     else:
                         pass  # Skip invalid data format without warning
-                except json.JSONDecodeError:
+                except requests.exceptions.JSONDecodeError:
                     pass  # Skip invalid JSON without warning
             except requests.exceptions.RequestException as e:
                 pass  # Skip any request exceptions without warning
@@ -86,22 +85,21 @@ if st.session_state.data:
 
     st.write(f"🧠 **AI Insights:** {ai_summary}")
 
-    # Initialize Map
-    m = folium.Map(location=[0, 0], zoom_start=2)
+    # Initialize Map only once
+    if 'map' not in st.session_state:
+        st.session_state.map = folium.Map(location=[0, 0], zoom_start=2)
 
-    # Limit the number of balloons to display (e.g., 500)
-    max_balloons = 10
-    balloon_data = st.session_state.data[:max_balloons]
+    m = st.session_state.map  # Reuse the map
 
-    # Create custom balloon icon (No highlight)
+    # Create custom balloon icon
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
-    for i, (lat, lon, alt) in enumerate(balloon_data):
-        # Check for NaN values in lat or lon
+    # Add markers for each balloon
+    for i, (lat, lon, alt) in enumerate(st.session_state.data):
         if math.isnan(lat) or math.isnan(lon):
             lat, lon = 0, 0  # Substitute invalid coordinates with (0, 0)
 
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
     # Display map using folium_static
-    folium_static(m, width=1800, height=1000)  # Larger width and height for better visibility
+    folium_static(m, width=1800, height=1000)
