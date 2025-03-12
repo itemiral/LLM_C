@@ -20,44 +20,44 @@ st.title("🎈 WindBorne Balloon Tracker")
 if 'data' not in st.session_state:
     st.session_state.data = None
 
+# Fetch Balloon Data Button
 if st.button("Fetch Balloon Data"):
     st.write("Fetching latest balloon data...")
 
-    with st.spinner('Loading data...'):
-        try:
-            responses = []
-            for i in range(24):  # Fetch data for each of the 24 hours
-                url = f"https://a.windbornesystems.com/treasure/{str(i).zfill(2)}.json"
+    try:
+        responses = []
+        for i in range(24):  # Fetch data for each of the 24 hours
+            url = f"https://a.windbornesystems.com/treasure/{str(i).zfill(2)}.json"
+            try:
+                res = requests.get(url)
+                res.raise_for_status()  # Will raise an exception for 404s or other errors
                 try:
-                    res = requests.get(url)
-                    res.raise_for_status()  # Will raise an exception for 404s or other errors
-                    try:
-                        json_data = res.json()
-                        if isinstance(json_data, list):
-                            responses.append({'data': json_data, 'hour': i})
-                    except json.JSONDecodeError:
-                        pass  # Skip invalid JSON without warning
-                except requests.exceptions.RequestException as e:
-                    pass  # Skip any request exceptions without warning
+                    json_data = res.json()
+                    if isinstance(json_data, list):
+                        responses.append({'data': json_data, 'hour': i})
+                except json.JSONDecodeError:
+                    pass  # Skip invalid JSON without warning
+            except requests.exceptions.RequestException as e:
+                pass  # Skip any request exceptions without warning
 
-            # Flatten the data for all hours into a single list
-            balloon_data = []
-            for response in responses:
-                for data_point in response['data']:
-                    if len(data_point) == 3:
-                        lat, lon, alt = data_point
-                        # Substitute NaN values with 0
-                        if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
-                            # Replace NaN with 0 for altitude and invalid coordinates
-                            if isinstance(alt, (int, float)) and not math.isnan(alt):
-                                balloon_data.append((lat, lon, alt))
-                            else:
-                                balloon_data.append((lat, lon, 0))  # Replace NaN altitude with 0
+        # Flatten the data for all hours into a single list
+        balloon_data = []
+        for response in responses:
+            for data_point in response['data']:
+                if len(data_point) == 3:
+                    lat, lon, alt = data_point
+                    # Substitute NaN values with 0
+                    if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+                        # Replace NaN with 0 for altitude and invalid coordinates
+                        if isinstance(alt, (int, float)) and not math.isnan(alt):
+                            balloon_data.append((lat, lon, alt))
+                        else:
+                            balloon_data.append((lat, lon, 0))  # Replace NaN altitude with 0
 
-            st.session_state.data = balloon_data[:200]  # Limit to 200 data points
+        st.session_state.data = balloon_data[:200]  # Limit to 200 data points
 
-        except requests.exceptions.RequestException as e:
-            st.error(f"Failed to reach the API: {e}")
+    except requests.exceptions.RequestException as e:
+        st.error(f"Failed to reach the API: {e}")
 
 # Check if data is available in session state and display
 if st.session_state.data:
@@ -80,39 +80,9 @@ if st.session_state.data:
     # Initialize map centered around the mean latitude and longitude
     m = folium.Map(location=[mean_lat, mean_lon], zoom_start=8)
 
-    # Create markers using CircleMarker for visibility
-    for lat, lon, alt in st.session_state.data:
-        lat = lat if not math.isnan(lat) else 0
-        lon = lon if not math.isnan(lon) else 0
-
-        # Create a simple CircleMarker for each balloon with increased radius for visibility
-        marker = folium.CircleMarker(
-            location=[lat, lon],
-            radius=10,  # Increase radius for bigger markers
-            color="blue",
-            fill=True,
-            fill_color="blue",
-            fill_opacity=0.6,
-            popup=f"Altitude: {alt}m\nLatitude: {lat}\nLongitude: {lon}"
-        )
-        
-        # Add marker to the map
-        marker.add_to(m)
-
-    # Display the map with the markers
-    folium_static(m, width=700)  # Set width for future
-
-    # Optionally, add a dropdown to simulate the interaction of clicking on a balloon
-    balloon_data = st.session_state.data
-    marker_info = st.selectbox("Select a balloon to get insights", balloon_data)
-    
-    if marker_info:
-        lat, lon, alt = marker_info
-        st.write(f"Fetching insights for Balloon at Lat: {lat}, Lon: {lon}, Alt: {alt}m")
-
-        # Generate AI Insights for the selected balloon
+    # Function to get AI Insights for the selected balloon
+    def get_ai_insights(lat, lon, alt):
         prompt = f"Analyze the following balloon data point: Latitude: {lat}, Longitude: {lon}, Altitude: {alt}."
-
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
@@ -121,8 +91,28 @@ if st.session_state.data:
                     {"role": "user", "content": prompt}
                 ]
             )
-            ai_summary = response['choices'][0]['message']['content']
+            return response['choices'][0]['message']['content']
         except Exception as e:
-            ai_summary = f"Error generating summary: {e}"
+            return f"Error generating summary: {e}"
 
-        st.write(f"🧠 **AI Insights for Selected Balloon:** {ai_summary}")
+    # Create markers using CircleMarker for visibility
+    for lat, lon, alt in st.session_state.data:
+        lat = lat if not math.isnan(lat) else 0
+        lon = lon if not math.isnan(lon) else 0
+
+        # Add a marker for each balloon with a popup
+        marker = folium.CircleMarker(
+            location=[lat, lon],
+            radius=10,  # Increase radius for bigger markers
+            color="blue",
+            fill=True,
+            fill_color="blue",
+            fill_opacity=0.6,
+            popup=f"Altitude: {alt}m\nLatitude: {lat}\nLongitude: {lon}\n\nAI Insight: {get_ai_insights(lat, lon, alt)}"
+        )
+
+        # Add marker to the map
+        marker.add_to(m)
+
+    # Display the map with the markers
+    folium_static(m, width=700)  # Set width for future
