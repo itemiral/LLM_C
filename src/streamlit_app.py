@@ -105,7 +105,7 @@ if st.session_state.data:
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
     # Add markers for each balloon
-    for i, (lat, lon, alt) in enumerate(st.session_state.data):
+    for lat, lon, alt in st.session_state.data:
         # Substitute invalid lat or lon with 0 if NaN
         lat = lat if not math.isnan(lat) else 0
         lon = lon if not math.isnan(lon) else 0
