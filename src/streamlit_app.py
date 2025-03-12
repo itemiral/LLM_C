@@ -12,6 +12,9 @@ import math
 # Initialize OpenAI client with default API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+# Set Streamlit layout to wide to take up more space on the screen
+st.set_page_config(layout="wide")
+
 st.title("🎈 WindBorne Balloon Tracker")
 
 # Define the API URL of the Flask backend
@@ -100,4 +103,5 @@ if st.session_state.data:
 
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
-    st_folium(m, width=1000, height=600)
+    # Display map with adjusted width and height
+    st_folium(m, width=1200, height=800)  # Set the desired width and height
