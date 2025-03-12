@@ -1,8 +1,7 @@
 import streamlit as st
 import requests
-import folium
-from folium import Icon
-from streamlit_folium import folium_static
+import plotly.express as px
+import pandas as pd
 import numpy as np
 import openai
 import os
@@ -83,35 +82,16 @@ if st.session_state.data:
 
     st.write(f"🧠 **AI Insights:** {ai_summary}")
 
-    # Initialize the map based on balloon data
-    latitudes = [lat for lat, lon, alt in st.session_state.data]
-    longitudes = [lon for lat, lon, alt in st.session_state.data]
+    # Create a DataFrame for easier handling
+    df = pd.DataFrame(st.session_state.data, columns=["Latitude", "Longitude", "Altitude"])
 
-    # Replace NaN values with 0 for latitude and longitude if any are NaN
-    latitudes = [lat if not math.isnan(lat) else 0 for lat in latitudes]
-    longitudes = [lon if not math.isnan(lon) else 0 for lon in longitudes]
+    # Plotly map setup
+    fig = px.scatter_mapbox(df, lat="Latitude", lon="Longitude", size_max=10, hover_name="Altitude",
+                            color="Altitude", size="Altitude", title="WindBorne Balloon Flight",
+                            template="plotly", color_continuous_scale="Viridis")
 
-    # Calculate the mean lat and lon for the map's center
-    mean_lat = np.mean(latitudes)
-    mean_lon = np.mean(longitudes)
+    # Set the map style and layout
+    fig.update_layout(mapbox_style="open-street-map", mapbox_zoom=3, mapbox_center={"lat": df["Latitude"].mean(), "lon": df["Longitude"].mean()})
 
-    # Initialize map centered around the mean latitude and longitude
-    m = folium.Map(location=[mean_lat, mean_lon], zoom_start=5)
-
-    # Create custom balloon icon
-    balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
-
-    # Manually add markers for each balloon
-    for lat, lon, alt in st.session_state.data:
-        lat = lat if not math.isnan(lat) else 0
-        lon = lon if not math.isnan(lon) else 0
-
-        # Create marker for each balloon
-        folium.Marker(
-            location=[lat, lon],
-            popup=f"Altitude: {alt}m",
-            icon=balloon_icon
-        ).add_to(m)
-
-    # Display the map with the markers
-    folium_static(m, width=700)  # Set width for future
+    # Show the plot in Streamlit
+    st.plotly_chart(fig)
