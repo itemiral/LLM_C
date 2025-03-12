@@ -2,11 +2,11 @@ import os
 import requests
 import json
 import numpy as np
-from openai import OpenAI
+import openai  # Import the openai library directly
 from flask import Flask, jsonify, request
 
 # Initialize OpenAI client with default API key
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+openai.api_key = os.getenv('OPENAI_API_KEY')  # Use the openai.api_key directly
 
 app = Flask(__name__)
 
@@ -70,7 +70,7 @@ def analyze_flight(balloon_data):
     prompt = f"Summarize this balloon flight data:\n{valid_data[:5]}..."  # Take only the first 5 entries for brevity
 
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # Change to turbo or another model you have access to
             messages=[
                 {"role": "system", "content": "You are an expert in analyzing flight patterns."},
