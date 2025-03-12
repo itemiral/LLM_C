@@ -96,21 +96,22 @@ if st.session_state.data:
     mean_lon = np.mean(longitudes)
 
     # Initialize map centered around the mean latitude and longitude
-    m = folium.Map(location=[mean_lat, mean_lon], zoom_start=5)
+    m = folium.Map(location=[mean_lat, mean_lon], zoom_start=8)
 
-    # Create custom balloon icon
-    balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
-
-    # Manually add markers for each balloon
+    # Create markers using CircleMarker for visibility
     for lat, lon, alt in st.session_state.data:
         lat = lat if not math.isnan(lat) else 0
         lon = lon if not math.isnan(lon) else 0
 
-        # Create marker for each balloon
-        folium.Marker(
+        # Create a simple CircleMarker for each balloon
+        folium.CircleMarker(
             location=[lat, lon],
-            popup=f"Altitude: {alt}m",
-            icon=balloon_icon
+            radius=5,  # Adjust the radius for visibility
+            color="blue",
+            fill=True,
+            fill_color="blue",
+            fill_opacity=0.6,
+            popup=f"Altitude: {alt}m"
         ).add_to(m)
 
     # Display the map with the markers
