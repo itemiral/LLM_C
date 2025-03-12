@@ -63,9 +63,6 @@ if st.button("Fetch Balloon Data"):
 
 # Check if data is available in session state and display
 if st.session_state.data:
-    # Debugging: Display the first few data points to ensure correctness
-    st.write(f"Fetched Data (first 5 entries): {st.session_state.data[:5]}")
-
     # Calculate Mean Altitude
     mean_altitude = np.mean([d[2] for d in st.session_state.data])
     st.write(f"📊 **Mean Altitude:** {mean_altitude:.2f}m")
@@ -90,11 +87,11 @@ if st.session_state.data:
     # Initialize the map based on balloon data
     latitudes = [lat for lat, lon, alt in st.session_state.data]
     longitudes = [lon for lat, lon, alt in st.session_state.data]
-    
+
     # Replace NaN values with 0 for latitude and longitude if any are NaN
     latitudes = [lat if not math.isnan(lat) else 0 for lat in latitudes]
     longitudes = [lon if not math.isnan(lon) else 0 for lon in longitudes]
-    
+
     # Calculate the mean lat and lon for the map's center
     mean_lat = np.mean(latitudes)
     mean_lon = np.mean(longitudes)
@@ -105,14 +102,11 @@ if st.session_state.data:
     # Initialize MarkerCluster
     marker_cluster = MarkerCluster().add_to(m)
 
-    # Create custom balloon icon (No highlight)
+    # Create custom balloon icon
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
-    # Add markers for each balloon with debugging
-    for idx, (lat, lon, alt) in enumerate(st.session_state.data):
-        # Debugging: Display each marker's position
-        st.write(f"Marker {idx}: Latitude={lat}, Longitude={lon}, Altitude={alt}")
-
+    # Add markers for each balloon
+    for lat, lon, alt in st.session_state.data:
         # Substitute invalid lat or lon with 0 if NaN
         lat = lat if not math.isnan(lat) else 0
         lon = lon if not math.isnan(lon) else 0
