@@ -65,6 +65,10 @@ if st.button("Fetch Balloon Data"):
 
 # Check if data is available in session state and display
 if st.session_state.data:
+    # Check how many unique (lat, lon) pairs are in the data
+    unique_coords = set((lat, lon) for lat, lon, alt in st.session_state.data)
+    st.write(f"Unique Balloon Locations: {len(unique_coords)}")
+    
     # Calculate Mean Altitude
     mean_altitude = np.mean([d[2] for d in st.session_state.data])
     st.write(f"📊 **Mean Altitude:** {mean_altitude:.2f}m")
@@ -98,8 +102,17 @@ if st.session_state.data:
     mean_lat = np.mean(latitudes)
     mean_lon = np.mean(longitudes)
 
+    # Adjust zoom level based on the number of unique locations
+    zoom_level = 5
+    if len(unique_coords) > 50:
+        zoom_level = 4
+    elif len(unique_coords) > 20:
+        zoom_level = 5
+    else:
+        zoom_level = 6
+
     # Initialize map centered around the mean latitude and longitude
-    m = folium.Map(location=[mean_lat, mean_lon], zoom_start=5)
+    m = folium.Map(location=[mean_lat, mean_lon], zoom_start=zoom_level)
 
     # Create custom balloon icon (No highlight)
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
@@ -113,4 +126,4 @@ if st.session_state.data:
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
     # Display the map only once, outside the loop
-    folium_static(m, width=700)  # Larger width and height for better visibility
+    folium_static(m, width=1800, height=1000)  # Larger width and height for better visibility
