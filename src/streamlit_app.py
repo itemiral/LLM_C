@@ -93,11 +93,11 @@ if st.session_state.data:
     # Initialize the map based on balloon data
     latitudes = [lat for lat, lon, alt in st.session_state.data]
     longitudes = [lon for lat, lon, alt in st.session_state.data]
-    
+
     # Replace NaN values with 0 for latitude and longitude if any are NaN
     latitudes = [lat if not math.isnan(lat) else 0 for lat in latitudes]
     longitudes = [lon if not math.isnan(lon) else 0 for lon in longitudes]
-    
+
     # Calculate the mean lat and lon for the map's center
     mean_lat = np.mean(latitudes)
     mean_lon = np.mean(longitudes)
