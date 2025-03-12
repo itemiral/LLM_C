@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import folium
-from streamlit_folium import folium_static
+from streamlit_folium import st_folium  # Use st_folium instead of folium_static
 from folium import Icon
 import numpy as np
 import openai
@@ -65,10 +65,13 @@ if st.button("Fetch Balloon Data"):
 
 # Check if data is available in session state and display
 if st.session_state.data:
+    # Debugging: Show the first 5 data points
+    st.write(f"First 5 Data Points: {st.session_state.data[:5]}")
+
     # Check how many unique (lat, lon) pairs are in the data
     unique_coords = set((lat, lon) for lat, lon, alt in st.session_state.data)
     st.write(f"Unique Balloon Locations: {len(unique_coords)}")
-    
+
     # Calculate Mean Altitude
     mean_altitude = np.mean([d[2] for d in st.session_state.data])
     st.write(f"📊 **Mean Altitude:** {mean_altitude:.2f}m")
@@ -125,5 +128,5 @@ if st.session_state.data:
 
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
-    # Display the map only once, outside the loop
-    folium_static(m, width=1800, height=1000)  # Larger width and height for better visibility
+    # Display the map with st_folium
+    st_folium(m, width=1800, height=1000)  # Larger width and height for better visibility
