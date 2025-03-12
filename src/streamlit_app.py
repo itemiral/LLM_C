@@ -1,9 +1,8 @@
 import streamlit as st
 import requests
 import folium
-from folium.plugins import MarkerCluster
-from streamlit_folium import folium_static
 from folium import Icon
+from streamlit_folium import folium_static
 import numpy as np
 import openai
 import os
@@ -99,21 +98,20 @@ if st.session_state.data:
     # Initialize map centered around the mean latitude and longitude
     m = folium.Map(location=[mean_lat, mean_lon], zoom_start=5)
 
-    # Initialize MarkerCluster
-    marker_cluster = MarkerCluster().add_to(m)
-
     # Create custom balloon icon
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
-    # Add markers for each balloon
+    # Manually add markers for each balloon
     for lat, lon, alt in st.session_state.data:
-        # Substitute invalid lat or lon with 0 if NaN
         lat = lat if not math.isnan(lat) else 0
         lon = lon if not math.isnan(lon) else 0
 
-        # Create marker and add to the cluster
-        marker = folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon)
-        marker.add_to(marker_cluster)
+        # Create marker for each balloon
+        folium.Marker(
+            location=[lat, lon],
+            popup=f"Altitude: {alt}m",
+            icon=balloon_icon
+        ).add_to(m)
 
     # Display the map with the markers
     folium_static(m, width=700)  # Set width for future
