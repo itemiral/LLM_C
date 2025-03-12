@@ -101,3 +101,28 @@ if st.session_state.data:
 
     # Display the map with the markers
     folium_static(m, width=700)  # Set width for future
+
+    # Optionally, add a dropdown to simulate the interaction of clicking on a balloon
+    balloon_data = st.session_state.data
+    marker_info = st.selectbox("Select a balloon to get insights", balloon_data)
+    
+    if marker_info:
+        lat, lon, alt = marker_info
+        st.write(f"Fetching insights for Balloon at Lat: {lat}, Lon: {lon}, Alt: {alt}m")
+
+        # Generate AI Insights for the selected balloon
+        prompt = f"Analyze the following balloon data point: Latitude: {lat}, Longitude: {lon}, Altitude: {alt}."
+
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",  # Use the appropriate OpenAI model
+                messages=[
+                    {"role": "system", "content": "You are an expert in analyzing flight data."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            ai_summary = response['choices'][0]['message']['content']
+        except Exception as e:
+            ai_summary = f"Error generating summary: {e}"
+
+        st.write(f"🧠 **AI Insights for Selected Balloon:** {ai_summary}")
