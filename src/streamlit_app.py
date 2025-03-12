@@ -104,7 +104,5 @@ if st.session_state.data:
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
     # Display map with adjusted width and height
-    col1, col2 = st.columns([3, 1])  # Adjust the ratio as needed
-    with col1:
-        st_folium(m, width=1600, height=800)
+    st_folium(m, width=700)
 
