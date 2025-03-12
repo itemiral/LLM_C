@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import folium
-from streamlit_folium import st_folium
+from streamlit_folium import folium_static  # Use folium_static instead of st_folium
 from folium import Icon
 import numpy as np
 import openai
@@ -103,6 +103,5 @@ if st.session_state.data:
 
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
-    # Display map with adjusted width and height
-    st_folium(m, width=700)
-
+    # Display map using folium_static
+    folium_static(m, width=1800, height=1000)  # Larger width and height for better visibility
