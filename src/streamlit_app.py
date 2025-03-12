@@ -100,4 +100,4 @@ if st.session_state.data:
 
         folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
 
-    st_folium(m, width=700)
+    st_folium(m, width=1000, height=600)
