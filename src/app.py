@@ -3,7 +3,7 @@ import requests
 import json
 import numpy as np
 from openai import OpenAI
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 # Initialize OpenAI client with default API key
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -37,7 +37,6 @@ def fetch_balloon_data():
 
     return data
 
-# Function to analyze balloon data
 # Function to analyze balloon data
 def analyze_flight(balloon_data):
     if not balloon_data:
@@ -85,7 +84,6 @@ def analyze_flight(balloon_data):
     # Return only the first mean altitude and AI insights summary
     return {"mean_altitude": mean_alt, "ai_summary": ai_summary, "balloon_data": valid_data}
 
-
 # API Endpoint to fetch data
 @app.route("/analyze", methods=["GET"])
 def analyze():
@@ -97,7 +95,7 @@ def analyze():
 @app.route("/analyze", methods=["POST"])
 def analyze_post():
     # Get the balloon data from the request payload
-    data = requests.get_json()
+    data = request.get_json()
     
     if not data:
         return jsonify({"error": "No data provided"}), 400
