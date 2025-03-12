@@ -58,22 +58,19 @@ if st.button("Fetch Balloon Data"):
                             balloon_data.append((lat, lon, alt))
                         else:
                             balloon_data.append((lat, lon, 0))  # Replace NaN altitude with 0
-        st.session_state.data = balloon_data
+        st.session_state.data = balloon_data[:300]  # Limit to 300 data points for testing
 
     except requests.exceptions.RequestException as e:
         st.error(f"Failed to reach the API: {e}")
 
 # Check if data is available in session state and display
 if st.session_state.data:
-    # Limit the balloon data to 300 points
-    limited_data = st.session_state.data[:300]  # Limit to the first 300 entries
-
     # Calculate Mean Altitude
-    mean_altitude = np.mean([d[2] for d in limited_data])
+    mean_altitude = np.mean([d[2] for d in st.session_state.data])
     st.write(f"📊 **Mean Altitude:** {mean_altitude:.2f}m")
 
     # Generate AI Insights using OpenAI
-    prompt = f"Summarize this balloon flight data:\n{limited_data[:5]}..."  # First 5 data points for brevity
+    prompt = f"Summarize this balloon flight data:\n{st.session_state.data[:5]}..."  # First 5 data points for brevity
 
     try:
         response = openai.ChatCompletion.create(
@@ -90,13 +87,13 @@ if st.session_state.data:
     st.write(f"🧠 **AI Insights:** {ai_summary}")
 
     # Initialize the map based on balloon data
-    latitudes = [lat for lat, lon, alt in limited_data]
-    longitudes = [lon for lat, lon, alt in limited_data]
-
+    latitudes = [lat for lat, lon, alt in st.session_state.data]
+    longitudes = [lon for lat, lon, alt in st.session_state.data]
+    
     # Replace NaN values with 0 for latitude and longitude if any are NaN
     latitudes = [lat if not math.isnan(lat) else 0 for lat in latitudes]
     longitudes = [lon if not math.isnan(lon) else 0 for lon in longitudes]
-
+    
     # Calculate the mean lat and lon for the map's center
     mean_lat = np.mean(latitudes)
     mean_lon = np.mean(longitudes)
@@ -107,12 +104,14 @@ if st.session_state.data:
     # Create custom balloon icon (No highlight)
     balloon_icon = Icon(color="blue", icon="cloud", icon_color="white")
 
-    # Manually add markers for each balloon
-    for lat, lon, alt in limited_data:
-        # Check if lat and lon are valid
-        if not math.isnan(lat) and not math.isnan(lon):
-            # Add marker manually
-            folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
+    # Add markers for each balloon
+    for lat, lon, alt in st.session_state.data:
+        # Substitute invalid lat or lon with 0 if NaN
+        lat = lat if not math.isnan(lat) else 0
+        lon = lon if not math.isnan(lon) else 0
 
-    # Display the map with folium_static
-    folium_static(m, width=700)  # Only set width and remove height for now
+        folium.Marker([lat, lon], popup=f"Altitude: {alt}m", icon=balloon_icon).add_to(m)
+
+    # Display the map
+    folium_static(m, width=700)  # Set width for future
+
